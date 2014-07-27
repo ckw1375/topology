@@ -1,50 +1,44 @@
 package beacon.topology.cls;
 
 import java.util.*;
-import java.lang.*;
 
 public class ProximityTopology {
-	private HashMap<Beacon,Double> prox;
+	private HashMap<Region,Double> rangeMap; //Map for ranges in meters
+	private BeaconTracker tracker;
 	
-	public ProximityTopology(ArrayList<Beacon> beaconList)
+	public ProximityTopology(ArrayList<Region> beacons, BeaconTracker nTracker)
 	{
-		prox = new HashMap<Beacon,Double>();
-		Iterator<Beacon> it = beaconList.iterator();
-		while(it.hasNext()) {
-			prox.put(it.next(),Double.POSITIVE_INFINITY);
-		}
+		rangeMap = new HashMap<Region,Double>();
+		for(Region it : beacons)
+			rangeMap.put(it,Double.valueOf(Double.POSITIVE_INFINITY));
+		tracker = nTracker;
 	}
 	
-	public Double getRange(Beacon beacon)
+	public Double getRange(Region beacon)
 	{
-		return prox.get(beacon);
+		return rangeMap.containsKey(beacon) ? rangeMap.get(beacon) : null;
 	}
 	
-	public void putRange(Beacon beacon, Double range)
+	public void setRange(Region beacon, Double range)
 	{
-		prox.put(beacon, range);
+		if(rangeMap.containsKey(beacon)) rangeMap.put(beacon, range);
 	}
 	
-	public Beacon getResult(ArrayList<Beacon> beaconList)
+	public Region getResult()
 	{
-		Iterator<Beacon> it = beaconList.iterator();
-		Beacon selected;
-		Double minRange;
-		while(it.hasNext()) {
-			Beacon beacon = it.next();
-			if(prox.containsKey(beacon))
-			{
-				Double range = prox.get(beacon);
-				if(beacon.)
-				
-				
-				
+		Double minDist = Double.valueOf(Double.POSITIVE_INFINITY); 
+		Region result = null;
+		for(Map.Entry<Region,Double> entry : rangeMap.entrySet()) {
+			Region beacon = entry.getKey();
+			Double range = entry.getValue();
+			if(tracker.isNearby(beacon)) {
+				Double dist = tracker.getAvgDist(beacon);
+				if(dist <= range && dist <= minDist) {
+					result = beacon;
+					minDist = dist;
+				}				
 			}
 		}
-		return selected;
+		return result;
 	}
-	
-	
-	
-
 }

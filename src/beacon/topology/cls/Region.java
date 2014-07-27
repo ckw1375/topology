@@ -81,6 +81,29 @@ public class Region implements Parcelable
      
 	   return true;
    }
+   
+   //added by Kaewon
+   public boolean includes(Object o)
+   {
+	   if (this == o) return true;
+	   if ((o == null) || (getClass() != o.getClass())) return false;
+ 
+	   Region region = (Region)o;
+	   
+	   //UUID check
+	   if (this.proximityUUID == null) return true;
+	   if (!this.proximityUUID.equals(region.proximityUUID)) return false;
+	   //major check
+	   if (this.major == null) return true;
+	   if (!this.major.equals(region.major)) return false;
+	   //minor check
+	   if (this.minor == null) return true;
+	   if (!this.minor.equals(region.major)) return false;
+
+	   //UUID, major, minor are the same
+	   return true;
+   }
+ 
  
   public int hashCode()
   {

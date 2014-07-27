@@ -3,96 +3,132 @@ package beacon.topology.cls;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 
 public class BeaconTracker {
-	private HashMap<Beacon,BeaconTrace> beaconMap;
+	private HashMap<Region,BeaconTrace> beaconMap; //Region is an identifier of a single beacon in this map
+	private ArrayList<Region> filter; //filter defines the set of tracked beacons
 	
 	public class BeaconTrace {
-		private double avgRssi;
-		private double avgDist;
-		private double lastUpdate;
-		private double alpha;
-		private double gain;
-		private double pathCoef;
-		
-		public double getAvgRssi() { return avgRssi; }
-		public double getAvgDist() { return avgDist; }
-		public BeaconTrace()
-		{
-			avgRssi = 0;
-			avgDist = 0;
-			lastUpdate = 0;
-			alpha = 0.001; //Update coefficient for 100 ms span
-			gain = 0;
-			pathCoef = 3; //Path loss coefficient
+		private double rssi; //in dB
+		private double txPower; //in dB
+		private double avgRssi; //in dB
+		private long lastUpdate; //in nanoseconds
+		//Constant
+		private static final double MV_AVG_COEF = 0.01; //Update coefficient for moving avg. for 100 ms span
+		private static final double GAIN = 0; //Gain in dB for path loss calculation
+		private static final double PL_COEF = 3; //Path loss coefficient
+		private static final long TIME_OUT_SECONDS = 5; //Time out for a nearby state in seconds
+		//Constructor
+		public BeaconTrace(double nRssi, double nTxPower) {
+			lastUpdate = -1;
+			updateTrace(nRssi, nTxPower);
 		}
-		public void updateTrace(double rssi, double txPower)
-		{
+		//Update average RSSI
+		public void updateTrace(double nRssi, double nTxPower) {
+			rssi = nRssi;
+			txPower = nTxPower;
 			//Calculate the average RSSI
-			double curTime = (double)System.nanoTime();
-			double timeDiff = (curTime - lastUpdate) * 0.00001; //in 100 ms
-			double beta = 1 - Math.pow(1-alpha, timeDiff);
-			if(lastUpdate == 0 || timeDiff < 0) {
+			long curTime = System.nanoTime();
+			double timeDiff100Millis = (double)TimeUnit.NANOSECONDS.toMillis(curTime - lastUpdate)/100D; //in 100 ms
+			if(lastUpdate == -1 || timeDiff100Millis < 0) {
 				avgRssi = rssi;
 			} else {
-				avgRssi = beta*rssi + (1-beta)*avgRssi;
+				double alpha = 1 - Math.pow(1 - MV_AVG_COEF, timeDiff100Millis);
+				avgRssi = alpha*rssi + (1-alpha)*avgRssi;
 			}
 			lastUpdate = curTime;
+		}
+		//Getter
+		public double getRssi() { return rssi; }
+		public double getAvgRssi() { return avgRssi; }
+		public double getAvgDist() {
 			//Calculate the distance
-			double diff = txPower - rssi + gain;
-			avgDist = Math.pow(10, diff/(10*pathCoef));
+			double diff = txPower - avgRssi + GAIN; //Path loss calculation
+			return Math.pow(10, diff/(10*PL_COEF));			
+		}
+		public boolean isNearby() {
+			long timeDiffSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - lastUpdate); //in seconds
+			return timeDiffSeconds < TIME_OUT_SECONDS ? true : false; 
 		}
 	}
 	
+	//Constructor
 	public BeaconTracker()
 	{
-		beaconMap = new HashMap<Beacon,BeaconTrace>();
+		beaconMap = new HashMap<Region,BeaconTrace>();
+		filter = new ArrayList<Region>();
 	}
 	
-	public void renewBeaconList(ArrayList<Beacon> beacons)
+	//Return true only when beacon is included in filter.
+	private boolean filterTest(Region beacon)
 	{
-		HashMap<Beacon,BeaconTrace> tmpMap = new HashMap<Beacon,BeaconTrace>();
-		Iterator<Beacon> it = beacons.iterator();
-		while(it.hasNext()) {
-			Beacon x = it.next();
-			if(beaconMap.containsKey(x))
-				tmpMap.put(x, beaconMap.get(x));
-			else
-				tmpMap.put(x, new BeaconTrace());			
+		boolean pass = false;
+		for(Region selected : filter) {
+			if(selected.includes(beacon)) pass = true;
 		}
-		beaconMap = tmpMap;
+		return pass;
 	}
 	
-	public Double getAvgRssi(Beacon beacon)
+	//Set a new filter. And remove all beacons not included in a new filter.
+	public void setFilter(ArrayList<Region> regions)
 	{
-		return beaconMap.get(beacon).getAvgRssi();
+		//Only non-overlapping regions are added to filter
+		filter.clear();
+		for(Region selected : regions) {
+			Iterator<Region> it = filter.iterator();
+			boolean eligible = true;
+			while(it.hasNext()) {
+				Region tmp = it.next();
+				if(tmp.includes(selected)) { 
+					eligible = false;
+					break;
+				}
+				if(selected.includes(tmp)) it.remove();
+			}
+			if(eligible == true)
+				filter.add(selected);
+		}
+		//Remove all beacons not included in a new filter.
+		Iterator<Map.Entry<Region,BeaconTrace>> it = beaconMap.entrySet().iterator();
+		while(it.hasNext()) {
+			if(!filterTest(it.next().getKey())) it.remove();				
+		}
 	}
 	
-	public Double getAvgDist(Beacon beacon)
-	{
-		return beaconMap.get(beacon).getAvgDist();
+	public Double getRssi(Region beacon) {		
+		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getRssi()) : null;
+	}
+		
+	public Double getAvgRssi(Region beacon) {
+		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getAvgRssi()) : null;
+	}
+	
+	public Double getAvgDist(Region beacon) {
+		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getAvgDist()) : null;
+	}
+	
+	public boolean isNearby(Region beacon) {
+		return beaconMap.containsKey(beacon) ? beaconMap.get(beacon).isNearby() : false;
+	}
+	
+	public HashMap<Region,Double> getAllNearbyAvgDist() {
+		HashMap<Region,Double> result = new HashMap<Region,Double>();
+		for(Map.Entry<Region,BeaconTrace> entry : beaconMap.entrySet()) {
+			if(entry.getValue().isNearby())
+				result.put(entry.getKey(), Double.valueOf(entry.getValue().getAvgDist()));				
+		}
+		return result;
 	}
 
-	public void update(ArrayList<Beacon> beacons) {
-		Iterator<Beacon> it1 = beacons.iterator();
-		Iterator<Beacon> it2 = beacons.iterator();
-		while(it1.hasNext()) {
-			Beacon x = it1.next();
-			if(x != null && beaconMap.containsKey(x)) {
-				double sum = x.getRssi();
-				int count = 1;
-				it2 = it1;
-				while(it2.hasNext()) {
-					Beacon y = it2.next();
-					if(y == x) {
-						sum = sum + (double)y.getRssi();
-						count++;
-					}
-					it2.remove();				
-				}			
-				beaconMap.get(x).updateTrace(sum/(double)count, (double)x.getMeasuredPower());
-			}
+	public void update(Region beacon, double nRssi, double nTxPower) {
+		if(beaconMap.containsKey(beacon)) {
+			beaconMap.get(beacon).updateTrace(nRssi, nTxPower);
+		} else {
+			if(filterTest(beacon))
+				beaconMap.put(beacon, new BeaconTrace(nRssi, nTxPower));			
 		}
 	}
 }
