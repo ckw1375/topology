@@ -1,80 +1,107 @@
 package beacon.topology.cls;
 
 import java.util.*;
+import android.util.*;
 
 public class SectorTopology {
-	public class Sample {
-		private ArrayList<Double> rssiList;
-		private int size;
-		public Sample(int nSize) { 
-			size = nSize;
-			rssiList = new ArrayList<Double>(size);			
-		}
-		public int getSize() { return size; }
-		public Double getRssi(int index) { return rssiList.get(index); }
-		public void setRssi(int index, Double rssi) { rssiList.set(index, rssi); }
-		public Double sqDist(Sample s) {
-			if(this.getSize() != s.getSize()) return null;
-			Double result = 0D;
-			for(int i=0; i<size; i++) {
-				result += Math.pow(this.getRssi(i)-s.getRssi(i), 2);
-			}
-			return result;			
-		}		
-	}
-	public class SampleList {
-		private ArrayList<Sample> spList;
+	private class SampleList {
+		private ArrayList<RssiVector> sp;
 		public SampleList() {
-			spList = new ArrayList<Sample>();
+			sp = new ArrayList<RssiVector>();
 		}
-		public void addSample(Sample s) {
-			spList.add(s);
+		public void addSample(RssiVector s) {
+			sp.add(s);
+		}
+		public RssiVector getSample(int ind) {
+			if(ind < 0 || ind >= sp.size()) return null;
+			return sp.get(ind);
 		}
 		public void clearSample() {
-			spList.clear();
+			sp.clear();
 		}
 		public int getSampleNumber() {
-			return spList.size();
+			return sp.size();
 		}
 	}
-	public class Sector {
-		private String name;
-		public SampleList samples;
-		public Sector(String nName) { 
-			name = nName;
-			samples = new SampleList();
-		}
-		public String getName() { return name; }
-		public void setName(String nName) { name = nName; }
-	}
-	private ArrayList<Sector> sectorList;
-	private ArrayList<Region> beaconList;
-	private int beaconNumber;
+	private HashMap<String,SampleList> sectors;
+	private BeaconVector bv;
 	private BeaconTracker tracker;
+	private static final int K = 5; //Parameter for KNN algorithm
 	
-	public SectorTopology(ArrayList<Region> beacons, ArrayList<String> sectorNames, BeaconTracker nTracker)	{
-		sectorList = new ArrayList<Sector>();
-		for(String str : sectorNames) {
-			sectorList.add(new Sector(str));
-		}
-		beaconList = beacons;
-		beaconNumber = beaconList.size();			
+	public SectorTopology(BeaconVector nBv, BeaconTracker nTracker)	{
+		sectors = new HashMap<String,SampleList>();
+		bv = nBv;
 		tracker = nTracker;
 	}
-	
-	public void addSample(int sectIdx) {
+	//Add a new sector with the sector name 'sectName'. 
+	//Successful (return true) only when there is no sector with the same name.
+	public boolean addSector(String sectName) {
+		if(sectors.containsKey(sectName) == false) {
+			sectors.put(sectName,new SampleList());
+			return true;
+		} 
+		return false;			
 	}
-	
-	public void clearSample(int sectIdx) {
-		sectorList.get(sectIdx).samples.clearSample();
+	public void deleteAllSectors() {
+		sectors.clear();
 	}
-	
-	public int getSampleNumber(int sectIdx) {
-		return sectorList.get(sectIdx).samples.getSampleNumber();
+	//Add a new sample to the sector with a given name. 
+	public boolean addSample(String sectName) {
+		SampleList sl = sectors.get(sectName);
+		if(sl == null) return false;
+		RssiVector rv = tracker.getAvgRssi(bv);
+		sl.addSample(rv);
+		return true;
 	}
-		
-	public int getResult()
+	//Clear all samples of the sector with a given name. 
+	public boolean clearSample(String sectName) {
+		SampleList sl = sectors.get(sectName);
+		if(sl == null) return false;
+		sl.clearSample();
+		return true;
+	}
+	//Get the number of samples of the sector with a given name. 
+	//In case of an error, return -1. 
+	public int getSampleNumber(String sectName) {
+		SampleList sl = sectors.get(sectName);
+		if(sl == null) return -1;
+		return sl.getSampleNumber();
+	}
+	//Return the sector name of the sector that the user is currently in (by using the KNN algorithm)
+	//In case of an error, return null.
+	public String getResult()
 	{
-
+		if(sectors.size() == 0) return null;
+		RssiVector cv = tracker.getAvgRssi(bv);
+		ArrayList<Pair<Double,String>> l = new ArrayList<Pair<Double,String>>();
+		for(Map.Entry<String,SampleList> entry : sectors.entrySet()) {
+			String sn = entry.getKey();
+			SampleList sl = entry.getValue();
+			for(int ind = 0; ind < sl.getSampleNumber(); ind ++) {
+				Pair<Double,String> p = new Pair<Double,String>(cv.sqDist(sl.getSample(ind)),sn);
+				l.add(p);
+			}			
+		}
+		Collections.sort(l, new Comparator<Pair<Double,String>>() { 
+			public int compare(Pair<Double,String> lhs, Pair<Double,String> rhs) {
+				return Double.compare(lhs.first, rhs.first);
+			}
+		});
+		if(l.get(0).first.isInfinite()) return null;
+		String selected = null;
+		int maxCount = 0;
+		for(Map.Entry<String,SampleList> entry : sectors.entrySet()) {
+			String sn = entry.getKey();
+			int count = 0;
+			for(int k = 0; k < Math.min(K, l.size()); k++) {
+				if(l.get(k).first.isInfinite()) break;
+				if(l.get(k).second == sn) count ++;
+			}
+			if(count >= maxCount) {
+				selected = sn;
+				maxCount = count;
+			}
+		}
+		return selected;
 	}
 }

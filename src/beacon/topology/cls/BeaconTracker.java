@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.lang.Math;
+import android.util.Pair;
 
 public class BeaconTracker {
 	private HashMap<Region,BeaconTrace> beaconMap; //Region is an identifier of a single beacon in this map
@@ -98,29 +98,81 @@ public class BeaconTracker {
 		}
 	}
 	
-	public Double getRssi(Region beacon) {		
-		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getRssi()) : null;
+	public RssiVector getRssi(BeaconVector b) {
+		int size = b.getSize();
+		RssiVector r = new RssiVector(size);
+		for(int ind = 0; ind < size; ind++) {
+			Region beacon = b.get(ind);
+			Double rssi;
+			if(beaconMap.containsKey(beacon) && beaconMap.get(beacon).isNearby()) {
+				rssi = Double.valueOf(beaconMap.get(beacon).getRssi());
+			} else {
+				rssi = null;
+			}			
+			r.set(ind, rssi);
+		}
+		return r;
 	}
 		
-	public Double getAvgRssi(Region beacon) {
-		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getAvgRssi()) : null;
-	}
-	
-	public Double getAvgDist(Region beacon) {
-		return beaconMap.containsKey(beacon) ? Double.valueOf(beaconMap.get(beacon).getAvgDist()) : null;
-	}
-	
-	public boolean isNearby(Region beacon) {
-		return beaconMap.containsKey(beacon) ? beaconMap.get(beacon).isNearby() : false;
-	}
-	
-	public HashMap<Region,Double> getAllNearbyAvgDist() {
-		HashMap<Region,Double> result = new HashMap<Region,Double>();
-		for(Map.Entry<Region,BeaconTrace> entry : beaconMap.entrySet()) {
-			if(entry.getValue().isNearby())
-				result.put(entry.getKey(), Double.valueOf(entry.getValue().getAvgDist()));				
+	public RssiVector getAvgRssi(BeaconVector b) {
+		int size = b.getSize();
+		RssiVector r = new RssiVector(size);
+		for(int ind = 0; ind < size; ind++) {
+			Region beacon = b.get(ind);
+			Double rssi;
+			if(beaconMap.containsKey(beacon) && beaconMap.get(beacon).isNearby()) {
+				rssi = Double.valueOf(beaconMap.get(beacon).getAvgRssi());
+			} else {
+				rssi = null;
+			}
+			r.set(ind, rssi);
 		}
-		return result;
+		return r;
+	}
+	
+	public DistanceVector getAvgDist(BeaconVector b) {
+		int size = b.getSize();
+		DistanceVector d = new DistanceVector(size);
+		for(int ind = 0; ind < size; ind++) {
+			Region beacon = b.get(ind);
+			Double distance;
+			if(beaconMap.containsKey(beacon) && beaconMap.get(beacon).isNearby()) {
+				distance = Double.valueOf(beaconMap.get(beacon).getAvgDist());
+			} else {
+				distance = null;
+			}
+			d.set(ind, distance);
+		}
+		return d;
+	}
+	
+	public ArrayList<Boolean> isNearby(BeaconVector b) {
+		int size = b.getSize();
+		ArrayList<Boolean> n = new ArrayList<Boolean>(size);
+		for(int ind = 0; ind < size; ind++) {
+			Region beacon = b.get(ind);
+			Boolean nearby = beaconMap.containsKey(beacon) ? 
+					Boolean.valueOf(beaconMap.get(beacon).isNearby()) : false;
+			n.set(ind, nearby);
+		}
+		return n;
+	}
+	
+	public Pair<BeaconVector,DistanceVector> getAllNearbyAvgDist() {
+		ArrayList<Region> b = new ArrayList<Region>();
+		ArrayList<Double> d = new ArrayList<Double>(); 
+		for(Map.Entry<Region,BeaconTrace> entry : beaconMap.entrySet()) {
+			if(entry.getValue().isNearby()) {
+				b.add(entry.getKey());
+				d.add(Double.valueOf(entry.getValue().getAvgDist()));
+			}
+		}
+		int size = b.size();
+		BeaconVector bv = new BeaconVector(size);
+		DistanceVector dv = new DistanceVector(size);
+		bv.setAll(b);
+		dv.setAll(d);
+		return new Pair<BeaconVector,DistanceVector>(bv,dv);
 	}
 
 	public void update(Region beacon, double nRssi, double nTxPower) {

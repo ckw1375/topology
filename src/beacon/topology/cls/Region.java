@@ -2,9 +2,7 @@
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 import beacon.topology.estimote.sdk.internal.Objects;
-import beacon.topology.estimote.sdk.internal.Objects.ToStringHelper;
 import beacon.topology.estimote.sdk.internal.Preconditions;
 
 public class Region implements Parcelable
@@ -103,8 +101,8 @@ public class Region implements Parcelable
 	   //UUID, major, minor are the same
 	   return true;
    }
- 
- 
+   
+
   public int hashCode()
   {
      int result = this.proximityUUID != null ? this.proximityUUID.hashCode() : 0;

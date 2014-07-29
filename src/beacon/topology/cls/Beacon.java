@@ -2,9 +2,7 @@ package beacon.topology.cls;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 import beacon.topology.estimote.sdk.internal.Objects;
-import beacon.topology.estimote.sdk.internal.Objects.ToStringHelper;
 
 public class Beacon implements Parcelable
 	{
