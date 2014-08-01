@@ -1,4 +1,4 @@
- package beacon.topology.cls;
+package beacon.topology.cls;
 
  
 import android.bluetooth.BluetoothAdapter;
@@ -43,7 +43,7 @@ public class Utils
     					int minor = unsignedByteToInt(scanRecord[(i + 24)]) * 256 + unsignedByteToInt(scanRecord[(i + 25)]);
     					int measuredPower = scanRecord[(i + 26)];
  
-    					return new Beacon(proximityUUID, device.getName(), device.getAddress(), major, minor, measuredPower, rssi);
+    					return new Beacon(proximityUUID, device.getName(), device.getAddress(), major, minor, measuredPower, rssi, 0);
     				}
 
     				return null;

@@ -5,7 +5,7 @@ import java.util.*;
 public class BeaconVector {
 	private Region[] beacons;
 	private int size;
-	BeaconVector(int nSize) {
+	public BeaconVector(int nSize) {
 		size = nSize;
 		beacons = new Region[size];
 	}

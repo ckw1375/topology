@@ -4,8 +4,10 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.lang.reflect.Array;
 
+import android.util.Log;
+
 public class LocationTopology {
-	public class Coordinate {
+	public static class Coordinate {
 		private double x, y;
 		public Coordinate(double nX, double nY) { x = nX; y = nY; }
 		public void set(double nX, double nY) { x = nX; y = nY; }
@@ -59,12 +61,12 @@ public class LocationTopology {
 		ArrayList<Coordinate> coord = new ArrayList<Coordinate>();
 		ArrayList<Double> dist = new ArrayList<Double>();
 		for(int ind = 0; ind < dv.getSize(); ind ++) {
-			if(!dv.get(ind).isInfinite()) {
+			if(dv.get(ind) != null) {
 				coord.add(cd[ind]);
 				dist.add(dv.get(ind));
 			}
 		}
-		if(dist.size() == 0) return null;
+		if(dist.size() <= 2) return null;
 		int numIter;
 		long curTime = System.nanoTime();
 		if(lastUpdate == -1) {
@@ -90,6 +92,10 @@ public class LocationTopology {
 			xJ[ind] = t.getX()/d;
 			yJ[ind] = t.getY()/d;
 			err[ind] = d - dist.get(ind);
+			Log.d("quasiNewton", "xJ[" + String.valueOf(ind) + "]: " + String.valueOf(xJ[ind]));
+			Log.d("quasiNewton", "yJ[" + String.valueOf(ind) + "]: " + String.valueOf(yJ[ind]));
+			Log.d("quasiNewton", "err[" + String.valueOf(ind) + "]: " + String.valueOf(err[ind]));
+			
 		}
 		//Calculating matrix [a b; b d]
 		double a = vecMul(xJ,xJ);
@@ -105,7 +111,7 @@ public class LocationTopology {
 		//Update current position
 		double newX = cur.getX() - deltaX;
 		double newY = cur.getY() - deltaY;
-		cur.set(newX, newY);		
+		if(!Double.isNaN(newX) && !Double.isNaN(newY)) cur.set(newX, newY);		
 	}
 	//Vector multiplication
 	private double vecMul(double[] a, double[] b) {

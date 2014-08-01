@@ -3,7 +3,7 @@ package beacon.topology.demo;
 import android.app.Activity;
 import android.os.Bundle;
 
-public class LocationSetting extends Activity {
+public class SectorTopologyActivity extends Activity {
 
 	/** Called when the activity is first created. */
 	@Override

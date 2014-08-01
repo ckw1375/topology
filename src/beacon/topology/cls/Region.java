@@ -3,68 +3,44 @@
 import android.os.Parcel;
 import android.os.Parcelable;
 import beacon.topology.estimote.sdk.internal.Objects;
-import beacon.topology.estimote.sdk.internal.Preconditions;
 
 public class Region implements Parcelable
 {
-	private final String identifier;
 	private final String proximityUUID;
 	private final Integer major;
     private final Integer minor;
-    public static final Parcelable.Creator<Region> CREATOR = new Parcelable.Creator()
-    {
+    public static final Parcelable.Creator<Region> CREATOR = new Parcelable.Creator<Region>() {
     	public Region createFromParcel(Parcel source) {
-    		
     		return new Region(source);
     	}
-
-    	public Region[] newArray(int size)
-    	{
-    	 
-    		return new Region[size];
+    	public Region[] newArray(int size) {
+    	 	return new Region[size];
     	}
     };
 
-   public Region(String identifier, String proximityUUID, Integer major, Integer minor)
-   {
-	   this.identifier = ((String)Preconditions.checkNotNull(identifier));
+   public Region(String proximityUUID, Integer major, Integer minor) {
 	   this.proximityUUID = (proximityUUID != null ? Utils.normalizeProximityUUID(proximityUUID) : proximityUUID);
 	   this.major = major;
 	   this.minor = minor;
    }
  
-   public String getIdentifier()
-   {
-	   
-	   return this.identifier;
-   }
- 
-   public String getProximityUUID()
-   {
-    
+   public String getProximityUUID() {    
 	   return this.proximityUUID;
    }
 
-   public Integer getMajor()
-   {
-	   
+   public Integer getMajor() {	   
 	   return this.major;
    }
 
-   public Integer getMinor()
-   {
-     
+   public Integer getMinor() {     
 	   return this.minor;
    }
  
-   public String toString()
-   {
-     
-	   return Objects.toStringHelper(this).add("identifier", this.identifier).add("proximityUUID", this.proximityUUID).add("major", this.major).add("minor", this.minor).toString();
+   public String toString() {     
+	   return Objects.toStringHelper(this).add("proximityUUID", this.proximityUUID).add("major", this.major).add("minor", this.minor).toString();
    }
 
-   public boolean equals(Object o)
-   {
+   public boolean equals(Object o) {
 	   if (this == o) return true;
 	   if ((o == null) || (getClass() != o.getClass())) return false;
  
@@ -80,9 +56,7 @@ public class Region implements Parcelable
 	   return true;
    }
    
-   //added by Kaewon
-   public boolean includes(Object o)
-   {
+   public boolean includes(Object o) {
 	   if (this == o) return true;
 	   if ((o == null) || (getClass() != o.getClass())) return false;
  
@@ -103,8 +77,7 @@ public class Region implements Parcelable
    }
    
 
-  public int hashCode()
-  {
+  public int hashCode() {
      int result = this.proximityUUID != null ? this.proximityUUID.hashCode() : 0;
      result = 31 * result + (this.major != null ? this.major.hashCode() : 0);
      result = 31 * result + (this.minor != null ? this.minor.hashCode() : 0);
@@ -112,9 +85,7 @@ public class Region implements Parcelable
      return result;
   }
 
-  private Region(Parcel parcel)
-  {
-     this.identifier = parcel.readString();
+  private Region(Parcel parcel) {
      this.proximityUUID = parcel.readString();
      Integer majorTemp = Integer.valueOf(parcel.readInt());
      if (majorTemp.intValue() == -1) {
@@ -132,24 +103,14 @@ public class Region implements Parcelable
      this.minor = minorTemp;
    }
  
-  public int describeContents()
-  {
+  public int describeContents() {
 	  return 0;
   }
 
-  public void writeToParcel(Parcel dest, int flags)
-  {
-	  dest.writeString(this.identifier);
+  public void writeToParcel(Parcel dest, int flags) {
 	  dest.writeString(this.proximityUUID);
 	  dest.writeInt(this.major == null ? -1 : this.major.intValue());
 	  dest.writeInt(this.minor == null ? -1 : this.minor.intValue());
   }
- 
-  public static enum State
-  {
-     INSIDE, 
-     OUTSIDE;
-  }
-  
- }
+}
 

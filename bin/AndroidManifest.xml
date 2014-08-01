@@ -8,6 +8,15 @@
         android:minSdkVersion="18"
         android:targetSdkVersion="19" />
 
+    <!-- Needed permissions in order to scan for beacons. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <!-- Declaration that this app is usable on phones with Bluetooth Low Energy. -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+    
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -22,9 +31,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="ProximitySetting"></activity>
-        <activity android:name="SectorSetting"></activity>
-        <activity android:name="LocationSetting"></activity>
+        <activity
+            android:name="beacon.topology.demo.BeaconListingActivity"
+            android:label="Beacon Listing"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="beacon.topology.demo.ProximityTopologyActivity"
+            android:label="Proximity Topology"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="beacon.topology.demo.SectorTopologyActivity"
+            android:label="Sector Topology"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="beacon.topology.demo.LocationTopologyActivity"
+            android:label="Location Topology"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>
